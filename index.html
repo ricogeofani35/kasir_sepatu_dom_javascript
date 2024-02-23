@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+    <style>
+        i {
+            cursor: pointer;
+        }
+        i:hover {
+            opacity: .6;
+        }
+        .kasir, .laporan {
+            cursor: pointer;
+        }
+        .kasir:hover, .laporan:hover {
+            opacity: .6;
+        }
+        .kasir h3, .laporan h3 {
+            transform: rotate(-90deg);
+        }
+        .buy {
+            display: flex;
+        }
+        #app .row .hide {
+            opacity: 0;
+            display: none;
+        }
+        .kasir-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-evenly;
+            height: 100vh;
+            overflow-y: scroll;
+        }
+    </style>
+
+    <title>kasir vue js</title>
+  </head>
+  <body>
+    
+    <div class="container-fluid" id="app">
+        <div class="row mx-2 my-2 " style="height: 98vh; overflow: hidden;">
+            <div class="col-md-1">
+                <div @click="kasirAction" class="kasir bg-primary d-flex justify-content-center align-items-center rounded shadow" style="height: 50vh;">
+                    <h3 class="text-white fw-bold">Kasir</h3>
+                </div>
+                <div @click="laporanAction" class="laporan bg-warning d-flex justify-content-center align-items-center  rounded shadow" style="height: 50vh;">
+                    <h3 class="text-white fw-bold">Laporan</h3>
+                </div>
+            </div>
+            <div class="kasir-wrapper col-md-8">
+                <div class="card mb-2 shadow rounded" style="width: 15rem;" v-for="barang in barangs" :key="barang.id">
+                    <img :src="barang.img" class="card-img-top" alt="barang" style="height: 200px;">
+                    <div class="card-body text-center">
+                      <h5 class="card-title">{{ barang.nama }}</h5>
+                      <p class="card-text text-danger fw-bold">Rp.{{ barang.harga }}</p>
+                      <p class="card-text" style="margin-top: -13px;">{{ barang.stock }} pcs</p>
+                    
+                      <div class="buy justify-content-between align-items-center" :class="beli(barang.id)">
+                          <div class="qty d-flex gap-2 align-items-center">
+                            <i class='bx bxs-plus-circle fs-2 text-success' @click="barang.qty++"></i>
+                            <input class="text-center fs-3 fw-bold rounded"  type="text" disabled :value="barang.qty" style="width: 40px; border: none;">
+                            <i class='bx bxs-minus-circle fs-2 text-danger' @click=" (barang.qty > 0) ? barang.qty-- : 0 "></i>
+                          </div>
+                          <i class='bx bx-plus-circle fs-1 text-primary' @click="(event) => addTransaksi(barang, event)"></i>
+                      </div>
+                    </div>
+                  </div>
+            </div>
+            <div class="transaksi-wrapper col-md-3 border bg-white shadow rounded">
+                <h2 class="text-center fw-lighter border-bottom py-2">Transaksi</h2>
+                <div class="datas-barang py-2 px-2" style="height: 50vh; overflow-y: scroll; box-shadow: inset 2px 2px 8px #ccc">
+                    <ul>
+                        <li class="d-flex justify-content-between px-2 py-2 border-bottom" v-for="tran in transaksi " :key="tran.id">
+                            <div class="text-trans">
+                                <h5 class="fw-bold">{{ tran.nama }}  <span class="fw-lighter text-success">(Rp.{{ tran.harga }})</span></h5>
+                                <p>Qty: {{ tran.qty }} pcs</p>
+                            </div>
+
+                            <div class="action fs-4">
+                                <i class='bx bxs-edit me-2 text-warning fw-bold' :class="editIcon(tran.id)" @click="(event) => editTransaksi(tran, event)"></i>
+                                <i class='bx bx-message-square-x text-danger fw-bold' @click="hapusTransaksi(tran)"></i>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="transaksi py-2 px-2">
+                    <div class="row mb-2 mt-2" >
+                        <div class="col-md-4">
+                            <h5>Total Bayar (Rp.)</h5>
+                        </div>
+                        <div class="col-md-8">
+                            <h2>{{ totalStlhDiskon }}</h2>
+                        </div>
+                    </div>
+                    <div class="row mb-2 mt-2">
+                        <div class="col-md-4">
+                            <h5 class="text-danger">Kembali (Rp.)</h5>
+                        </div>
+                        <div class="col-md-8">
+                            <h2 class="text-danger">{{ kembalian }}</h2>
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-4">
+                            <h5>Diskon</h5>
+                        </div>
+                        <div class="col-md-8">
+                            <input  v-model="diskon" type="number"  style="width: 100px; border: none; outline: 1px solid red; padding: 3px 10px"> %
+                        </div>
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <h5>Uang Bayar (Rp.)</h5>
+                        </div>
+                        <div class="col-md-8">
+                            <input v-model="bayar"  type="number" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 text-center">
+                            <button @click="checkout" class="btn btn-primary" style="width: 300px;">Checkout</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div ref="laporanWrapper" class="hide col-md-11 shadow" style="background-color: #ddd;">
+                <h1 class="text-center mb-3 mt-2 text-uppercase">halaman laporan</h1> <hr>
+                
+                <table class="table table-bordered border-dark mt-3">
+                    <thead class="bg-primary text-center text-light">
+                        <tr>
+                            <th>No</th>
+                            <th>Kode Transaksi</th>
+                            <th>Total Bayar</th>
+                            <th>Bayar</th>
+                            <th>Diskon</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-center">
+                        <tr v-for="pjl in penjualan" :key="pjl.id">
+                            <td>{{ pjl.id + 1 }}</td>
+                            <td>{{ pjl.kode }}</td>
+                            <td>{{ pjl.total }}</td>
+                            <td>{{ pjl.bayar }}</td>
+                            <td>{{ pjl.diskon }}</td>
+                            <td>
+                                <button @click="showModalDetail(pjl.id)" type="button" class="btn btn-sm btn-info me-2" data-bs-toggle="modal" data-bs-target="#staticBackdrop">detail</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+  
+    <!-- Modal -->
+    <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="staticBackdropLabel">Detail Laporan</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body d-flex flex-wrap gap-2">
+                    <div class="card" style="width: 15rem;" v-for="p in penjualan" :key="p.id">
+                        {{ p.kode }}
+                        <div v-if="idDetail == p.id">
+                            <div v-for="barang in pjl.barang">
+                                <div class="card-body">
+                                  <h5 class="card-title">{{ barang.nama }}</h5>
+                                  <p class="card-text">stock : {{ barang.stock }}</p>
+                                  <p class="card-text">harga : {{ barang.harga }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+        </div>
+    </div>
+
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- vue js 3 -->
+    <script src="script.js"></script>
+
+    <!-- Option 1: Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+
+  </body>
+</html>
